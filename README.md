@@ -1,1 +1,2 @@
-# livingdata
+# LivingData - Collaborative Dynamic Datasets
+
