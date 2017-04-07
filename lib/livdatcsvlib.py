@@ -1,6 +1,5 @@
 import sys,os,csv,json, codecs, cStringIO, datetime
-import xlrd,copy
-
+import xlrd,copy,xlsxwriter
 
 def packkeyvalues(keys,values):
 	dictionary=dict()
@@ -162,8 +161,11 @@ class ExcelFile:
 		self.filename=""
 		self.worksheetnames=[]
 		self.worksheets=[]
+		self.workbook=None
+	
 		
-	def importfile(self,pathtofile):
+		
+	def importascsv(self,pathtofile):
 		self.filename=os.path.split(pathtofile)[1]
 		workbook=xlrd.open_workbook(pathtofile,encoding_override='utf-8')
 		self.worksheetnames=workbook.sheet_names()
@@ -188,10 +190,12 @@ class ExcelFile:
 				dictionary[u'LD_ROWID']=str(j)
 				c.matrix.append(dictionary)
 			self.worksheets.append(c)
-	
+			
 	def exportfile(self,pathtofile):
 		wb=xlsxwriter.Workbook(pathtofile)
+		i=0
 		for csv in self.worksheets:
+			csv.filename=self.worksheetnames[i]
 			ws=wb.add_worksheet(csv.filename.split(".")[0])
 			rownum=0
 			colnum=0
@@ -204,6 +208,7 @@ class ExcelFile:
 				for colname in csv.colnames:
 					ws.write(rownum,colnum,row[colname])
 					colnum+=1
+			i+=1
 		wb.close()
 	def getSheet(self,sheetname):
 		if sheetname not in self.worksheetnames:
