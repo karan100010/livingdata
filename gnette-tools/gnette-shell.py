@@ -15,7 +15,7 @@ IF NOT, SEE HTTP://WWW.GNU.ORG/LICENSES/.
 '''
 import os,sys, datetime
 from dateutil import relativedelta
-sys.path.append("/opt/livingdata/lib")
+sys.path.append("../lib")
 from livdattable import *
 from xlutils.copy import copy
 from livdatdb import *
