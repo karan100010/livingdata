@@ -31,10 +31,15 @@ if __name__=="__main__":
 		dictionary['name']=lookupnamefornumber(dictionary['number'],people)
 		dictionary['date']=dictionary['year']+"-"+dictionary['month']+"-"+dictionary['day']
 		dictionary['time']=dictionary['hour']+":"+dictionary['min']+":"+dictionary['sec']
+		callfiles=os.listdir(os.path.join(callspath,call))
+		dictionary['recording']="None"
+		for callfile in callfiles:
+			if "callfile" in callfile:
+				dictionary['recording']=callfile
 		calllist.append(dictionary)
 	c=CSVFile()
 	c.colnames=callkeys
-	c.colnames+=["name","date","time"]
+	c.colnames+=["name","date","time","recording"]
 	c.matrix=calllist
 	
 	
@@ -45,7 +50,7 @@ if __name__=="__main__":
 	x.worksheets.append(c)
 	callsbynum=CSVFile()
 	callsbynum.filename="Calls by Number"
-	callsbynum.colnames=["Number","Number of Calls","Name of Caller"]
+	callsbynum.colnames=["Number","Number of Calls","Name of Caller","Number of Recordings"]
 	numlist=[]
 	for call in c.matrix:
 		numlist.append(call['number'].replace("+91",""))
@@ -54,12 +59,16 @@ if __name__=="__main__":
 	for num in numlist:
 		dictionary={}
 		numcalls=0
+		numrecs=0
 		for call in c.matrix:
 			if call['number']==num:
 				numcalls+=1
+				if call['recording']!="None":
+					numrecs+=1
 		dictionary['Number']=num
 		dictionary['Name of Caller']=lookupnamefornumber(dictionary['Number'],people)
 		dictionary['Number of Calls']=numcalls
+		dictionary['Number of Recordings']=numrecs
 		callmatrix.append(dictionary)
 	callsbynum.matrix=callmatrix
 	
@@ -71,26 +80,39 @@ if __name__=="__main__":
 	callsbyday=xfile.create_sheet("Calls by Day")
 	callsbyday["A1"]="Day"
 	callsbyday["B1"]="Number of Calls"
+	callsbyday["C1"]="Number of Recordings"
+	
 	days=[]
 	for call in c.matrix:
 		days.append(call['date'])
 	days=list(set(days))
 	days.sort()
-	daycountdict={}
+	daycountdict=[]
 	for day in days:
 		daycount=0
+		dayrecount=0
 		for call in c.matrix:
 			if call['date']==day:
 				daycount+=1
-		daycountdict[day]=daycount
+				if call['recording']!="None":
+					dayrecount+=1
+		daydict={}
+		daydict['Day']=datetime.datetime.strptime(day,"%Y-%b-%d")
+		daydict['Number of Calls']=daycount
+		daydict["Number of Recordings"]=dayrecount
+		
+		daycountdict.append(daydict)
 	r=2
 	c=1
-	for key,val in daycountdict.iteritems():
+	for daydict in daycountdict:
 		cell=callsbyday.cell(row=r,column=c)
-		cell.value=datetime.datetime.strptime(key,"%Y-%b-%d")
+		cell.value=daydict['Day']
 		c+=1
 		cell=callsbyday.cell(row=r,column=c)
-		cell.value=val
+		cell.value=daydict['Number of Calls']
+		c+=1
+		cell=callsbyday.cell(row=r,column=c)
+		cell.value=daydict['Number of Recordings']
 		
 		r+=1
 		c=1
