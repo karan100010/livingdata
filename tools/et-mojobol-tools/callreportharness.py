@@ -18,17 +18,10 @@ def lookupnamefornumber(number,people):
 	for person in people.matrix:
 			if person['Mob1'].strip(".0")==number or person['Mob2'].strip(".0")==number:
 				return person['Name']
-				
-if __name__=="__main__":
-	callspath=sys.argv[1]
-	outfilename=sys.argv[2]
+def getcalllist(callspath):
+	calllist=[]
 	calls=os.listdir(callspath)
 	callkeys=["number","server","year","month","day","hour","min","sec"]
-	calllist=[]
-	e=ExcelFile()
-	e.importascsv("/home/pi/MasterSKSList.xlsx")
-	people=e.worksheets[0]
-	
 	for call in calls:
 		if "calllog" in call:
 			break
@@ -51,11 +44,19 @@ if __name__=="__main__":
 				dictionary['recording']=callfile
 				dictionary['recordlen']=getaudiolen(os.path.join(callspath,call,callfile))
 		calllist.append(dictionary)
+	return calllist
+				
+if __name__=="__main__":
+	callspath=sys.argv[1]
+	outfilename=sys.argv[2]
+	e=ExcelFile()
+	e.importascsv("/home/arjun/MasterSKSList.xlsx")
+	people=e.worksheets[0]
+	
 	c=CSVFile()
 	c.colnames=callkeys
 	c.colnames+=["name","date","time","recording","recordlen"]
-	c.matrix=calllist
-	
+	c.matrix=getcalllist(callspath)
 	
 	
 	x=ExcelFile()
