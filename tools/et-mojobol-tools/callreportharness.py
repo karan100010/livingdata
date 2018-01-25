@@ -1,25 +1,30 @@
 #!/usr/bin/python
 import sys, os
-sys.path.append("../lib")
+sys.path.append("../../lib")
 from livdatcsvlib import *
 import openpyxl
+import wave
+import contextlib
+
+def getaudiolen(fname):
+	with contextlib.closing(wave.open(fname,'r')) as f:
+		frames = f.getnframes()
+		rate = f.getframerate()
+		duration = frames / float(rate)
+		return duration
+
 
 def lookupnamefornumber(number,people):
 	for person in people.matrix:
 			if person['Mob1'].strip(".0")==number or person['Mob2'].strip(".0")==number:
 				return person['Name']
-				
-if __name__=="__main__":
-	callspath=sys.argv[1]
-	outfilename=sys.argv[2]
+def getcalllist(callspath):
+	calllist=[]
 	calls=os.listdir(callspath)
 	callkeys=["number","server","year","month","day","hour","min","sec"]
-	calllist=[]
-	e=ExcelFile()
-	e.importascsv("/home/arjun/MasterSKSList.xlsx")
-	people=e.worksheets[0]
-	
 	for call in calls:
+		if "calllog" in call:
+			break
 		i=0
 		dictionary={}
 		callvals=call.split("-")
@@ -33,15 +38,25 @@ if __name__=="__main__":
 		dictionary['time']=dictionary['hour']+":"+dictionary['min']+":"+dictionary['sec']
 		callfiles=os.listdir(os.path.join(callspath,call))
 		dictionary['recording']="None"
+		dictionary['recordlen']="None"
 		for callfile in callfiles:
 			if "callfile" in callfile:
 				dictionary['recording']=callfile
+				dictionary['recordlen']=getaudiolen(os.path.join(callspath,call,callfile))
 		calllist.append(dictionary)
+	return calllist
+				
+if __name__=="__main__":
+	callspath=sys.argv[1]
+	outfilename=sys.argv[2]
+	e=ExcelFile()
+	e.importascsv("/home/arjun/MasterSKSList.xlsx")
+	people=e.worksheets[0]
+	
 	c=CSVFile()
 	c.colnames=callkeys
-	c.colnames+=["name","date","time","recording"]
-	c.matrix=calllist
-	
+	c.colnames+=["name","date","time","recording","recordlen"]
+	c.matrix=getcalllist(callspath)
 	
 	
 	x=ExcelFile()
