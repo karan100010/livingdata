@@ -44,3 +44,13 @@ class DataButler(SoMACyborg):
 		response=urllib2.urlopen(feedurl)
 		data=json.load(response)
 		return data
+	
+	def goto_sheet_by_key(self,sheetkey):
+		self.goto_url("https://docs.google.com/spreadsheets/d/"+sheetkey)
+	
+	def goto_sheet_tab(self,sheetname):
+		for sheettab in self.driver.find_elements_by_class_name("docs-sheet-tab-name"):
+			print sheettab.get_property("innerHTML")
+			if sheettab.get_property("innerHTML")==sheetname:
+				sheettab.click()
+

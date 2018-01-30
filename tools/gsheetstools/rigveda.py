@@ -6,7 +6,7 @@ from livdattable import *
 from libsoma import *
 import pygsheets
 from bs4 import BeautifulSoup
-	
+
 def update_testrigsheet(testrigsheet,rigvals):
 	rownum=2
 	tsval=testrigsheet.get_row(rownum)
