@@ -16,28 +16,28 @@ def get_formatted_json(dictionary):
 	formatted_json=json.dumps(dictionary,sort_keys=True, indent=4)
 	return formatted_json
 
-class ScenarioGenerator(Butler):
-	def __init__(self,configfile):
-		config=ConfigParser.ConfigParser()
-		config.read(configfile)
-		self.outhstore = config.get("Google","outhstore")
-		self.outhfile = config.get("Google","outhfile")
-		self.scenariobookkey=config.get("Scenario","bookkey")
-		self.name=config.get("Scenario","name")	
-		self.config=config
-		print "Read config for " + self.name
-		self.gc=pygsheets.authorize(outh_file=self.outhfile,outh_nonlocal=True,outh_creds_store=self.outhstore)
-		self.scenariobook=self.gc.open_by_key(self.scenariobookkey)
-		self.scenariodef=self.scenariobook.worksheet_by_title("Scenario").get_as_df()
-		
-	def get_sheet_last_row(sheetname):
-	sheet=self.scenariobook.worksheet_by_title(sheetname)
-	rownum=2
-	rowval=sheet.get_row(rownum)
-	if rowval==['']:
+class ScenarioGenerator(DataButler):
+	def __init__(self,*args, **kwargs):
+		super(ScenarioGenerator,self).__init__(*args, **kwargs)
+		self.scenariobookkey=self.config.get("Scenario","bookkey")
+		try:
+			print "Trying to get scenario book..."
+			self.scenariobook=self.gc.open_by_key(self.scenariobookkey)
+			self.scenariodef=self.scenariobook.worksheet_by_title("Scenario").get_as_df()
+		except:
+			print "Failed to open scenario book by key " + self.scenariobookkey
+		self.name=self.config.get("Scenario","name")	
+	
+	def blank_scenario(self):
+		scenario={}
+		for row in sc.scenariodef.itertuples():
+		if row.Type=="read":
+			print "Reading cell " + str(row.Cell) + " from RunSheet for field " + row.Name
+			scenario[row.Name]=sc.scenariobook.worksheet_by_title("RunSheet").cell(str(row.Cell)).value
+		if row.Type=="variable":
+			print row.Name + " is a variable to be put in " + row.Cell
+			scenario[row.Name]=None
+		if row.Type=="result":
+			print row.Name + " is a result to be put in " + row.Cell
+			scenario[row.Name]=None
 		return None
-	else:
-		while rowval != ['']:
-			rownum+=1
-			rowval=sheet.get_row(rownum)
-		return sheet.get_row(rownum-1)
