@@ -25,10 +25,16 @@ class ScenarioGenerator(DataButler):
 			self.scenariobook=self.gc.open_by_key(self.scenariobookkey)
 			self.scenariodef=self.scenariobook.worksheet_by_title("Scenario").get_as_df()
 			self.runsheet=self.scenariobook.worksheet_by_title("RunSheet")
+			self.scenariossheet=self.scenariobook.worksheet_by_title("Scenarios")
+			self.scenariosdf=self.scenariobook.worksheet_by_title("Scenarios").get_as_df()
+			self.name=self.config.get("Scenario","name")
+			print sorted(list(self.scenariodef.Name))	
+			self.scenariossheet.update_row(1,sorted(list(self.scenariodef.Name)))	
+			
 		except:
 			print "Failed to open scenario book by key " + self.scenariobookkey
-		self.name=self.config.get("Scenario","name")	
-	
+		
+		
 	def blank_scenario(self):
 		scenario={}
 		for row in self.scenariodef.itertuples():
@@ -61,3 +67,9 @@ class ScenarioGenerator(DataButler):
 				print "Setting variable "+ key + " in cell " + self.lookup_cell_for_key(key)
 				self.runsheet.update_cell(self.lookup_cell_for_key(key),scenario[key])
 								
+	def append_scenarios(self,scenarios):
+		self.scenariosdf=self.scenariosdf.append(scenarios,ignore_index=True).drop_duplicates()
+	def put_scenarios(self):
+		self.scenariossheet.set_dataframe(self.scenariosdf,(1,1))
+	def get_scenarios(self):
+		self.scenariosdf=self.scenariossheet.get_as_df()
