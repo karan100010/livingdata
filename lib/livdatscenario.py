@@ -2,7 +2,7 @@ import os,sys
 
 sys.path.append("/opt/livingdata/lib")
 
-from livdatbutler import *
+from livdatbender import *
 from libsoma import *
 import pygsheets
 from bs4 import BeautifulSoup
@@ -16,7 +16,7 @@ def get_formatted_json(dictionary):
 	formatted_json=json.dumps(dictionary,sort_keys=True, indent=4)
 	return formatted_json
 
-class ScenarioGenerator(DataButler):
+class ScenarioGenerator(DataBender):
 	def __init__(self,*args, **kwargs):
 		super(ScenarioGenerator,self).__init__(*args, **kwargs)
 		self.scenariobookkey=self.config.get("Scenario","bookkey")
@@ -51,8 +51,9 @@ class ScenarioGenerator(DataButler):
 	def get_scenario(self):
 		scenario={}
 		for row in self.scenariodef.itertuples():
-			print "Reading cell " + str(row.Cell) + " from RunSheet for field " + row.Name
+			print "Reading cell " + str(row.Cell) + " from RunSheet for field " + row.Name +"..."
 			scenario[row.Name]=self.scenariobook.worksheet_by_title("RunSheet").cell(str(row.Cell)).value
+			print scenario[row.Name]
 		return scenario
 	def lookup_cell_for_key(self,key):
 		return str(self.scenariodef[self.scenariodef.Name==key].Cell.iloc[0])
@@ -64,7 +65,7 @@ class ScenarioGenerator(DataButler):
 	def put_scenario(self,scenario):
 		for key in scenario.keys():
 			if self.lookup_type_for_key(key)=="variable":
-				print "Setting variable "+ key + " in cell " + self.lookup_cell_for_key(key)
+				print "Setting variable "+ key + " in cell " + self.lookup_cell_for_key(key) + "to " +str(scenario[key])
 				self.runsheet.update_cell(self.lookup_cell_for_key(key),scenario[key])
 								
 	def append_scenarios(self,scenarios):
