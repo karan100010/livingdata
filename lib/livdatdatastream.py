@@ -29,6 +29,7 @@ class DataStream(object):
 				print exception
 		with open(self.latestjsonpath,"w") as f:
 			try:
+				self.latestdf=self.fulldf[-1*self.latestcount:]
 				f.write(self.latestdf.to_json(orient="index"))
 				f.write("\n")
 			except Exception as exception:
@@ -46,7 +47,7 @@ class DataStream(object):
 			f.write("\n")
 	
 	def append_data(self,newdatadf):
-		self.fulldf=self.fulldf.append(newdatadf).sort_values(by="created_at",ascending=False).drop_duplicates('created_at').sort_index()
+		self.fulldf=self.fulldf.append(newdatadf).sort_values(by="created_at").drop_duplicates('created_at').reset_index(drop=True).sort_index()
 		self.latestdf=self.fulldf[-1*self.latestcount:]
 		
 	
