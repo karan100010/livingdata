@@ -25,7 +25,7 @@ class DataBender(SoMACyborg):
 			if ssheet['name']==title:
 				print "Sheet exists...fetching"
 				return self.gc.open_by_key(ssheet['id'])
-		print "Sheet does not exist...is your name correct"
+		self.logger.error("Sheet does not exist...is your name correct")
 		return None
 
 	def get_sheet_last_row(ssheet,sheetname):
