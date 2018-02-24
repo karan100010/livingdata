@@ -8,7 +8,9 @@ from bs4 import BeautifulSoup
 class DataBender(SoMACyborg):
 	def __init__(self,*args, **kwargs):
 		super(DataBender,self).__init__(*args, **kwargs)
-	
+		self.logger.info("Looks like I'm a databender")
+		self.gdrive_login()
+		self.datacubes=[]
 	def create_new_ssheet(self,title,folderid=None):
 		for ssheet in self.gc.list_ssheets():
 			if ssheet['name']==title:
@@ -20,14 +22,19 @@ class DataBender(SoMACyborg):
 				print "Sheet %s created" %title
 				return self.gc.open_by_key(ssheet['id'])
 	
-	def get_ssheet(self,title):
+	def get_ssheet_by_name(self,title):
 		for ssheet in self.gc.list_ssheets():
 			if ssheet['name']==title:
-				print "Sheet exists...fetching"
+				self.logger.info("Sheet " + title  + " exists...fetching")
 				return self.gc.open_by_key(ssheet['id'])
 		self.logger.error("Sheet does not exist...is your name correct")
 		return None
-
+	def get_ssheet_by_key(self,key):
+		try:
+			self.logger.info("Trying to fetch heet " + key )
+			return self.gc.open_by_key(key)
+		except:
+			return None
 	def get_sheet_last_row(ssheet,sheetname):
 		sheet=ssheet.worksheet_by_title(sheetname)
 		rownum=2
@@ -53,4 +60,17 @@ class DataBender(SoMACyborg):
 			print sheettab.get_property("innerHTML")
 			if sheettab.get_property("innerHTML")==sheetname:
 				sheettab.click()
-
+	
+	
+	def build_cube(self,sheetname=None,key=None):
+		
+		if name==None and key==None:
+			self.logger.error("No remote identifier specified,local copy only")
+			return None
+		if name != None:
+			self.logger.info("Trying to build cube from "+name)
+			cubesheet=self.get_ssheet_by_name(name)
+			
+			cubesheet=self.get_ssheet_by_key(key)
+		return cubesheet
+		
