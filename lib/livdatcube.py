@@ -5,6 +5,12 @@ from libsoma import *
 import pygsheets
 from bs4 import BeautifulSoup
 
+def get_worksheet_names(ssheet):
+	sheetnames=[]
+	for ws in ssheet.worksheets():
+		sheetnames.append(ws.title)
+	return sheetnames
+
 def get_as_dict(df):
     if "key" not in df.columns:
         print "Cannot do...no key column"
@@ -16,16 +22,26 @@ def get_as_dict(df):
     dfdict=dfval.to_dict()
     return dfdict
 
-
+def string_to_range(string):
+	if "range" in string:
+		rangedef=string.replace("range(","").replace(")","").split(",")
+		indexrange=range(int(rangedef[0]),int(rangedef[1]))
+		return indexrange
+	return None
 class DataCube(object):
-	
-	
-	
-	
 	def __init__(self,src="local",localpath=None,remotesheetkey=None,remotesheetname=None,databender=None):
 		# Identify the source, local or remote and init accordingly
 		#If source is local - 
 		self.jsonprofile={}
+		self.local=False
+		self.remote=False
+		self.src=src
+		self.set_property("local",self.local)
+		self.set_property("remote",self.remote)
+		self.set_property("src",self.src)
+		
+		
+		self.cubedefdict={}
 		if src=='local':
 			if localpath==None:
 				print "If source is local, a path must be provided"
@@ -40,9 +56,7 @@ class DataCube(object):
 				print "If source is remote, a bender is needed"
 				return None
 			self.initremote(remotesheetname,remotesheetkey,databender)
-		
 			
-		
 	def show_profile(self):
 		print get_color_json(self.jsonprofile)
 	
@@ -65,8 +79,7 @@ class DataCube(object):
 	def set_property(self,propertyname,value):
 		self.jsonprofile[propertyname]=value
 	
-	def initlocal (self,localpath=None):
-		
+	def initlocal(self,localpath=None):
 		if localpath==None:
 			print "If source is local, a path must be provided"
 			return None
@@ -89,34 +102,121 @@ class DataCube(object):
 			keys=pandas.Series(['index','cubename','dictionary_prefix','datasheet_prefix','columns'])
 			self.cubedef.key=keys
 			self.cubedef.to_csv(os.path.join(self.cubepath,"cubedef.csv"),index=False)
-		
-		
+			print "Please enter a cube definition in the file " + os.path.join(self.cubepath,"cubedef.csv")
+			
 		self.local=True	
-	
+		self.set_property("local",self.local)
+		
 	def initremote(self,remotesheetname=None,remotesheetkey=None,databender=None):
-		if remotesheetkey==None and remotesheetname==None:
+		self.cubesheetname=remotesheetname
+		self.cubesheetkey=remotesheetkey
+		if self.cubesheetkey==None and self.cubesheetname==None:
 			print "If source is remote, a sheet name or sheet key must be provided"
 			self.remote=False
 			return None
 		if databender == None:
 			print "If source is remote, a bender is needed"
 			self.remote=False
+			return None	
+		
+		cubesheetdict={}
+		cubesheetdict['id']=self.cubesheetkey
+		cubesheetdict['name']=self.cubesheetname
+		cubesheetdict=databender.lookup_ssheet(cubesheetdict)
+		print "Looked up sheetdict",cubesheetdict
+		if cubesheetdict['id']!=None and cubesheetdict['name']==None:
+			print "Specified id doesnt exist and no name specified"
+			self.remote=False
 			return None
-			
-		if remotesheetkey != None:
-			print "We can has sheetkey", remotesheetkey
-			self.cubesheetkey=remotesheetkey
-			self.cubesheet=databender.get_ssheet_by_key(self.cubesheetkey)
-			self.cubesheetname=self.cubesheet.title
-		else:
-			self.cubesheetname=remotesheetname
-			self.cubesheet=databender.get_ssheet_by_name(self.cubesheetname)
-			self.cubesheetkey=self.cubesheet.id
+		if cubesheetdict['id']==None and cubesheetdict['name'] !=None:
+			print "Creating sheet..."
+			databender.gc.create(title=cubesheetdict['name'])
+		self.cubesheet=databender.get_ssheet(name=cubesheetdict['name'])
+		self.cubesheetname=self.cubesheet.title
+		self.cubesheetkey=self.cubesheet.id
+		print "Initing remote"
 		self.set_property("cubesheetname",self.cubesheetname)
 		self.set_property("cubesheetkey",self.cubesheetkey)
+		
+		#print self.cubesheet.worksheets()
+		try:
+			self.cubedef=self.cubesheet.worksheet_by_title("cubedef").get_as_df()
+			self.cubedefdict=get_as_dict(self.cubedef)
+		except:
+			print "Could not get cubedef....trying to create"
+			try:
+				self.cubesheet.add_worksheet(title="cubedef")
+				self.cubedef=pandas.DataFrame(columns=['key','value'])
+				keys=pandas.Series(['index','cubename','dictionary_prefix','datasheet_prefix','columns'])
+				self.cubedef.key=keys
+				self.cubesheet.worksheet_by_title("cubedef").set_dataframe(self.cubedef,(1,))
+				print "Please enter a cube definition in the worksheet cubedef at https://docs.google.com/spreadsheets/d"+self.cubesheet.id
+			except Exception as e:
+				print "Could not create worksheet because", e
+			
+		
 		self.remote=True
-
+		self.set_property("remote",self.remote)
+		
+		return None
 	def initmemory (self):
 		print "Initing memory"
-		self.cubedicts = {}
+		self.build_cube()
 		
+	def build_cube(self):
+		if self.get_property(self.src)==False:
+			print "Cannot build cube, specified source is not connected, init local or remote successfully first"
+			return None
+		self.cubename=self.cubedefdict['cubename']
+		self.set_property("cubename",self.cubename)
+		self.save_profile()
+		print "Prefixes"
+		for key,value in self.cubedefdict.iteritems():
+			if "_prefix" in key:
+				print key, value
+				self.set_property(key,value)
+		print "Index"
+		self.set_property("index",self.cubedefdict['index'])
+		indexrange=string_to_range(self.cubedefdict['index'])
+		print indexrange
+		
+		print "Columns"
+		columnrange=self.cubedefdict['columns'].split(",")
+		print columnrange
+		self.cubedatadf=pandas.DataFrame(columns=columnrange,index=indexrange)
+		print self.cubedatadf
+	
+	def check_cube_data(self):
+		checked=True
+		for i in self.cubedatadf.index:
+			for col in self.cubedatadf.columns:
+				datasheetname=self.get_property("datasheet_prefix")+"_"+str(i)+"_"+col
+				if self.src=="local":
+					datafilename=datasheetname+".csv"
+					if os.path.exists(os.path.join(self.get_property("cubepath"),datafilename)):
+						print datafilename + " exists...checked!"
+					else:
+						print datafilename + " does not exists...:(!"
+						checked=False
+				if self.src=="remote":
+					if datasheetname in get_worksheet_names(self.cubesheet):
+						print datasheetname + " exists...checked!"
+					else:
+						print datasheetname + " does not exists...:(!"
+						checked=False
+		return checked
+	def load_cube_data(self):
+		print self.cubedatadf
+		for i in self.cubedatadf.index:
+			for col in self.cubedatadf.columns:
+				datasheetname=self.get_property("datasheet_prefix")+"_"+str(i)+"_"+col
+				if self.src=="local":
+					datafilename=datasheetname+".csv"
+					if os.path.exists(os.path.join(self.get_property("cubepath"),datafilename)):
+						print i,col
+						self.cubedatadf[col][i]=pandas.read_csv(datafilename)
+				if self.src=="remote":
+					if datasheetname in get_worksheet_names(self.cubesheet):
+						print i,col
+						self.cubedatadf[col][i]=self.cubesheet.worksheet_by_title(datasheetname).get_as_df()
+				

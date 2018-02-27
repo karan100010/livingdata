@@ -5,12 +5,37 @@ from libsoma import *
 import pygsheets
 from bs4 import BeautifulSoup
 
+
+	
+
 class DataBender(SoMACyborg):
 	def __init__(self,*args, **kwargs):
 		super(DataBender,self).__init__(*args, **kwargs)
 		self.logger.info("Looks like I'm a databender")
 		self.gdrive_login()
 		self.datacubes=[]
+		
+		
+	def lookup_ssheet(self,sheetdict):
+		print "looking up sheetdict"
+		for ssheet in self.gc.list_ssheets():
+			if sheetdict['id']==ssheet['id']:
+				print "Found by name"
+				return ssheet
+			if sheetdict['name']==ssheet['name']:
+				print "Found by name"
+				return ssheet
+			
+		return sheetdict
+	
+	def get_ssheet(self,key=None,name=None):
+		if key==None and name==None:
+			return None
+		if key!=None:
+			return self.get_ssheet_by_key(key)
+		if name!=None:
+			return self.get_ssheet_by_name(name)
+	
 	def create_new_ssheet(self,title,folderid=None):
 		for ssheet in self.gc.list_ssheets():
 			if ssheet['name']==title:
@@ -63,7 +88,6 @@ class DataBender(SoMACyborg):
 	
 	
 	def build_cube(self,sheetname=None,key=None):
-		
 		if name==None and key==None:
 			self.logger.error("No remote identifier specified,local copy only")
 			return None
