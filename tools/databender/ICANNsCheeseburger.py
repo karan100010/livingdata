@@ -13,12 +13,15 @@ def wordcounter():
 		freqdf=pandas.DataFrame(frequencies, index=word_vectorizer.get_feature_names(), columns=[year]).sort_values(by=year)
 		print freqdf
 
+
+print "The datacube is stored in a variable named d and the bender is called jughead"	
+
+
 jughead=DataBender(sys.argv[1],headless=True,launchbrowser=False)
 
-d=DataCube(src="remote",remotesheetname="ICANN's Cheeseburger Analysis",databender=jughead)
 
-d.build_cube()
-d.check_cube_data()
-d.load_cube_data()
-d.load_cube_calcsheets()
-d.load_cube_dicts()
+d=DataCube(name=sys.argv[2],src="remote",remotesheetname=sys.argv[2],databender=jughead)
+
+d.initmemory()
+
+

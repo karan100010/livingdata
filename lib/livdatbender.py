@@ -17,13 +17,13 @@ class DataBender(SoMACyborg):
 		
 		
 	def lookup_ssheet(self,sheetdict):
-		print "looking up sheetdict"
+		self.logger.info("Looking up sheetdict")
 		for ssheet in self.gc.list_ssheets():
 			if sheetdict['id']==ssheet['id']:
-				print "Found by name"
+				self.logger.info("Found by ID")
 				return ssheet
 			if sheetdict['name']==ssheet['name']:
-				print "Found by name"
+				self.logger.info("Found by name")
 				return ssheet
 			
 		return sheetdict
