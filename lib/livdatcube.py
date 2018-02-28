@@ -28,6 +28,7 @@ def string_to_range(string):
 		indexrange=range(int(rangedef[0]),int(rangedef[1]))
 		return indexrange
 	return None
+	
 class DataCube(object):
 	def __init__(self,src="local",localpath=None,remotesheetkey=None,remotesheetname=None,databender=None):
 		# Identify the source, local or remote and init accordingly
@@ -39,7 +40,7 @@ class DataCube(object):
 		self.set_property("local",self.local)
 		self.set_property("remote",self.remote)
 		self.set_property("src",self.src)
-		
+		self.cubecalcsheets={}
 		
 		self.cubedefdict={}
 		if src=='local':
@@ -219,4 +220,52 @@ class DataCube(object):
 					if datasheetname in get_worksheet_names(self.cubesheet):
 						print i,col
 						self.cubedatadf[col][i]=self.cubesheet.worksheet_by_title(datasheetname).get_as_df()
-				
+	def load_cube_calcsheets(self):
+		calcsheets=[]
+		if self.src=="local":
+			for fn in os.listdir(self.cubepath):
+				ws=fn.replace(".csv","")
+				if ws.split("_")[0]==self.cubename:
+					calcsheets.append(ws)
+			for sheet in calcsheets:
+				self.cubecalcsheets[sheet]=pandas.read_csv(os.path.join(self.cubepath,sheet+".csv"))
+		if self.src=="remote":
+			for ws in get_worksheet_names(self.cubesheet):
+				if ws.split("_")[0]==self.cubename:
+					calcsheets.append(ws)
+			for sheet in calcsheets:
+				self.cubecalcsheets[sheet]=self.cubesheet.worksheet_by_title(sheet).get_as_df()
+	def load_cube_dicts(self):
+		if self.src=="local":
+			if os.path.exists(self.cubedictsfilepath):
+				with open(self.cubedictsfilepath,"r") as cubedictsjson:
+					self.cubedicts=json.loads(cubedictsjson.read())
+			else:
+				self.cubedicts={}
+		if self.src=="remote":
+			self.cubedicts={}
+			dictsheets=[]
+			for ws in get_worksheet_names(self.cubesheet):
+				if ws.split("_")[0]==self.get_property("dictionary_prefix"):
+					dictsheets.append(ws)
+			for ws in dictsheets:
+				self.cubedicts[ws]=get_as_dict(self.cubesheet.worksheet_by_title(ws).get_as_df())
+		
+		
+	def save_local(self):
+		print "Saving local"
+		self.cubedef.to_csv(self.cubedeffilepath,index=False,encoding="utf8")
+		with open(self.cubedictsfilepath,"w") as cubedictsjson:
+			cubedictsjson.write(json.dumps(self.cubedicts))
+		for i in self.cubedatadf.index:
+			for col in self.cubedatadf.columns:
+				self.cubedatadf[col][i].to_csv(os.path.join(self.cubepath,self.get_property("datasheet_prefix")+"_"+str(i)+"_"+col),encoding="utf8")
+		for key in self.cubecalcsheets.keys():
+			print "Saving "+ key +".csv"
+			self.cubecalcsheets[key].to_csv(os.path.join(self.cubepath,key+".csv"),encoding="utf8")
+			
+		self.save_profile()
+		
+	def save_remote(self):
+		print "Saving remote"
+	

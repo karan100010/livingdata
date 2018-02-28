@@ -13,11 +13,12 @@ def wordcounter():
 		freqdf=pandas.DataFrame(frequencies, index=word_vectorizer.get_feature_names(), columns=[year]).sort_values(by=year)
 		print freqdf
 
-jughead=DataBender(,headless=True,launchbrowser=False)
+jughead=DataBender(sys.argv[1],headless=True,launchbrowser=False)
 
 d=DataCube(src="remote",remotesheetname="ICANN's Cheeseburger Analysis",databender=jughead)
 
 d.build_cube()
 d.check_cube_data()
 d.load_cube_data()
-
+d.load_cube_calcsheets()
+d.load_cube_dicts()
