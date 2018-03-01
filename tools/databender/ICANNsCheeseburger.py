@@ -14,7 +14,6 @@ def wordcounter():
 		print freqdf
 
 
-print "The datacube is stored in a variable named d and the bender is called jughead"	
 
 
 jughead=DataBender(sys.argv[1],headless=True,launchbrowser=False)
@@ -25,3 +24,4 @@ d=DataCube(name=sys.argv[2],src="remote",remotesheetname=sys.argv[2],databender=
 d.initmemory()
 
 
+print "The datacube is stored in a variable named d and the bender is called jughead"	
