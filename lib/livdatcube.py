@@ -5,7 +5,7 @@ from libsoma import *
 import pygsheets
 from bs4 import BeautifulSoup
 
-
+from tabulate import tabulate
 
 
 def get_worksheet_names(ssheet):
@@ -123,7 +123,14 @@ class DataCube(object):
 				self.logger.info("Please enter a cube definition in the file " + os.path.join(self.cubepath,"cubedef.csv"))
 		self.local=True	
 		self.set_property("local",self.local)
-		
+	
+	def log_to_disk(self):
+		logFormatter=logging.Formatter(SOMA_LOG_FORMAT)
+		fileHandler = logging.FileHandler("{0}/{1}.log".format(self.cubepath, "datacubesession"))
+		fileHandler.setFormatter(logFormatter)
+		fileHandler.addFilter(coloredlogs.HostNameFilter())
+		self.logger.addHandler(fileHandler)
+	
 	def initremote(self,remotesheetname=None,remotesheetkey=None,databender=None):
 		self.cubesheetname=remotesheetname
 		self.cubesheetkey=remotesheetkey
@@ -314,10 +321,18 @@ class DataCube(object):
 		for i in self.cubedatadf.index:
 			for col in self.cubedatadf.columns:
 				self.logger.info("Uploading "+ self.get_property("datasheet_prefix")+"_"+str(i)+"_"+col)
-				self.cubesheet.worksheet_by_title(self.get_property("datasheet_prefix")+"_"+str(i)+"_"+col).set_dataframe(self.cubedatadf[col][i],(1,1))
+				try:
+					self.cubesheet.worksheet_by_title(self.get_property("datasheet_prefix")+"_"+str(i)+"_"+col).set_dataframe(self.cubedatadf[col][i],(1,1))
+				except Exception as e:
+					self.logger.error("Could not update " + self.get_property("datasheet_prefix")+"_"+str(i)+"_"+col + " because " + str(e))
+
 		self.logger.info("Saving cube calculated sheets")
 		for calcsheet in self.cubecalcsheets.keys():
+			self.logger.info("Uploading "+calcsheet)
 			if calcsheet not in get_worksheet_names(self.cubesheet):
+				self.logger.info("Adding worksheet "+calcsheet)
 				self.cubesheet.add_worksheet(title=calcsheet)
-			self.cubesheet.worksheet_by_title(calcsheet).set_dataframe(self.cubecalcsheets[calcsheet],(1,1))
-		
+			try:
+				self.cubesheet.worksheet_by_title(calcsheet).set_dataframe(self.cubecalcsheets[calcsheet],(1,1))
+			except Exception as e:
+				self.logger.error("Could not update " + calcsheet + " because " + str(e))
